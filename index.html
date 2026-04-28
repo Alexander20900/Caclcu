@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Калькулятор</title>
+  <style>
+    :root {
+      --bg: #1a1d23;
+      --panel: #252a32;
+      --display-bg: #f0f0f0;
+      --border: #ccc;
+      --accent: #3d8bfd;
+      --text: #e8eaed;
+      --btn-num: #3a4049;
+      --btn-op: #4a5568;
+      --btn-eq: #2d6a4f;
+      --btn-tools: #5c4d7d;
+      --shadow: 0 4px 14px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(160deg, #12141a 0%, #1e2430 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px 16px 48px;
+    }
+    .app {
+      width: 100%;
+      max-width: 520px;
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+    .display {
+      font-size: clamp(1.25rem, 4vw, 1.75rem);
+      font-weight: 700;
+      min-height: 88px;
+      padding: 14px 16px;
+      background: var(--display-bg);
+      color: #111;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      text-align: right;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+    .grid button {
+      font-size: clamp(1rem, 3.5vw, 1.35rem);
+      font-weight: 700;
+      min-height: 56px;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--text);
+      background: var(--btn-num);
+      transition: transform 0.08s, filter 0.15s;
+    }
+    .grid button:active { transform: scale(0.96); }
+    .grid button:hover { filter: brightness(1.08); }
+    .grid button.op { background: var(--btn-op); }
+    .grid button.eq { background: var(--btn-eq); color: #fff; }
+    .grid button.tools { background: var(--btn-tools); font-size: clamp(0.75rem, 2.5vw, 0.95rem); }
+    .pos-r0c0 { grid-column: 1; grid-row: 1; }
+    .pos-r0c1 { grid-column: 2; grid-row: 1; }
+    .pos-r0c2 { grid-column: 3; grid-row: 1; }
+    .pos-r0c3 { grid-column: 4; grid-row: 1; }
+    .pos-r0c4 { grid-column: 5; grid-row: 1; }
+    .pos-r1c0 { grid-column: 1; grid-row: 2; }
+    .pos-r1c1 { grid-column: 2; grid-row: 2; }
+    .pos-r1c2 { grid-column: 3; grid-row: 2; }
+    .pos-r1c3 { grid-column: 4; grid-row: 2; }
+    .pos-r1c4 { grid-column: 5; grid-row: 2; }
+    .pos-r2c0 { grid-column: 1; grid-row: 3; }
+    .pos-r2c1 { grid-column: 2; grid-row: 3; }
+    .pos-r2c2 { grid-column: 3; grid-row: 3; }
+    .pos-r2c3 { grid-column: 4; grid-row: 3; }
+    .pos-r2c4 { grid-column: 5; grid-row: 3; }
+    .pos-r3c0 { grid-column: 1; grid-row: 4; }
+    .pos-r3c1 { grid-column: 2; grid-row: 4; }
+    .pos-r3c2 { grid-column: 3; grid-row: 4; }
+    .pos-r3c3 { grid-column: 4; grid-row: 4; }
+    .pos-r3c4 { grid-column: 5; grid-row: 4; }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 20px;
+      max-width: 640px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+      border: 1px solid #3d4450;
+    }
+    .modal h2 {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+    }
+    .modal label { display: block; margin-top: 10px; font-size: 0.9rem; opacity: 0.9; }
+    .modal input, .modal select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #555c6a;
+      background: #1e2229;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .modal button.action {
+      margin-top: 14px;
+      padding: 12px 18px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      width: 100%;
+    }
+    .modal button.action:hover { filter: brightness(1.1); }
+    .modal .close-x {
+      float: right;
+      background: transparent;
+      border: none;
+      color: #888;
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .modal .close-x:hover { color: #fff; }
+    .result-text { margin-top: 12px; font-size: 0.95rem; line-height: 1.4; }
+    .error { color: #f87171; }
+    .tools-list { display: flex; flex-direction: column; gap: 10px; }
+    .tools-list button {
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      background: var(--btn-op);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .tools-list button:hover { filter: brightness(1.1); }
+    table.rates { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.85rem; }
+    table.rates th, table.rates td {
+      border: 1px solid #444;
+      padding: 8px;
+      text-align: left;
+    }
+    table.rates th { background: #2a3038; }
+    #graphCanvas {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      background: #fff;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    .grades-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .grades-btns button { min-height: 56px; font-size: 1.25rem; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Калькулятор</h1>
+    <div class="display" id="display">0</div>
+    <div class="grid" id="calcGrid"></div>
+  </div>
+
+  <!-- Меню инструментов -->
+  <div class="overlay" id="overlayTools">
+    <div class="modal">
+      <button type="button" class="close-x" data-close="overlayTools" aria-label="Закрыть">&times;</button>
+      <h2>Инструменты</h2>
+      <div class="tools-list">
+        <button type="button" data-open="modalTemp">Конвертер температуры</button>
+        <button type="button" data-open="modalSpeed">Конвертер скорости</button>
+        <button type="button" data-open="modalNotation">Перевод систем счисления</button>
+        <button type="button" data-open="modalGraph">Построение графиков</button>
+        <button type="button" data-open="modalCurrency">Курс валют</button>
+        <button type="button" data-open="modalGrades">Подсчёт оценок</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modalTemp">
+    <div class="modal">
+      <button type="button" class="close-x" data-close="modalTemp">&times;</button>
+      <h2>Конвертер температуры</h2>
+      <label>Введите температуру<input type="text" id="tempInput" placeholder="Введите температуру" /></label>
+      <label>Из<select id="tempFrom"></select></label>
+      <label>В<select id="tempTo"></select></label>
+      <button type="button" class="action" id="btnTempConvert">Перевести температуру</button>
+      <div class="result-text" id="tempResult">Температура: </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modalSpeed">
+    <div class="modal">
+      <button type="button" class="close-x" data-close="modalSpeed">&times;</button>
+      <h2>Конвертер скорости</h2>
+      <label>Введите скорость<input type="text" id="speedInput" placeholder="Введите скорость" /></label>
+      <label>Из<select id="speedFrom"></select></label>
+      <label>В<select id="speedTo"></select></label>
+      <button type="button" class="action" id="btnSpeedConvert">Перевести скорость</button>
+      <div class="result-text" id="speedResult">Скорость: </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modalNotation">
+    <div class="modal">
+      <button type="button" class="close-x" data-close="modalNotation">&times;</button>
+      <h2>Перевод систем счисления</h2>
+      <label>Число<input type="text" id="notNumber" placeholder="Введите число" /></label>
+      <label>Исходное основание (2–36)<input type="text" id="notFromBase" placeholder="Например: 10, 2, 16" /></label>
+      <label>Целевое основание (2–36)<input type="text" id="notToBase" placeholder="Например: 10, 2, 16" /></label>
+      <button type="button" class="action" id="btnNotation">Перевести число</button>
+      <div class="result-text" id="notationResult">Результат: </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modalGraph">
+    <div class="modal">
+      <button type="button" class="close-x" data-close="modalGraph">&times;</button>
+      <h2>Построение графиков</h2>
+      <label>Функция от x
+        <input type="text" id="graphFunc" placeholder="x**2, sin(x), log2(x), |x|, 2**x" />
+      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label>x min<input type="text" id="graphXmin" value="-10" /></label>
+        <label>x max<input type="text" id="graphXmax" value="10" /></label>
+      </div>
+      <button type="button" class="action" id="btnPlot">Построить график</button>
+      <canvas id="graphCanvas" width="800" height="480"></canvas>
+      <div class="result-text" id="graphError"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modalCurrency">
+    <div class="modal">
+      <button type="button" class="close-x" data-close="modalCurrency">&times;</button>
+      <h2>Курс валют к рублю (RUB)</h2>
+      <button type="button" class="action" id="btnCurrencyRefresh">Обновить курсы</button>
+      <div class="result-text" id="currencyMeta"></div>
+      <table class="rates" id="currencyTable"><thead><tr><th>Валюта</th><th>Код</th><th>₽ за 1 ед.</th></tr></thead><tbody></tbody></table>
+      <div class="result-text error" id="currencyError"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="modalGrades">
+    <div class="modal">
+      <button type="button" class="close-x" data-close="modalGrades">&times;</button>
+      <h2>Подсчёт оценок</h2>
+      <div class="result-text" id="gradesAvg" style="font-size:1.2rem;font-weight:700;text-align:center;">Средний балл: -</div>
+      <div class="grades-btns">
+        <button type="button" class="op" data-grade="2">2</button>
+        <button type="button" class="op" data-grade="3">3</button>
+        <button type="button" class="op" data-grade="4">4</button>
+        <button type="button" class="op" data-grade="5">5</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const display = document.getElementById('display');
+  let currentNumber = '';
+
+  function updateDisplay(text) {
+    display.textContent = text === '' ? '0' : text;
+  }
+
+  /** Безопасное вычисление выражения (только цифры, операторы, скобки, пробелы, точка, **) */
+  function safeEvalExpression(expr) {
+    const trimmed = expr.trim();
+    if (!trimmed) throw new Error('empty');
+    const marker = '\x00';
+    let masked = trimmed.replace(/\*\*/g, marker);
+    if (!/^[\d+\-*/().\s\x00eE]+$/.test(masked)) throw new Error('invalid');
+    masked = masked.replace(/\x00/g, '**');
+    return Function('"use strict"; return (' + masked + ')')();
+  }
+
+  function appendToCurrent(value) {
+    currentNumber += String(value);
+    updateDisplay(currentNumber);
+  }
+
+  function clearCurrent() {
+    currentNumber = '';
+    updateDisplay('0');
+  }
+
+  function calculateResult() {
+    if (!currentNumber.trim()) return;
+    const expression = currentNumber;
+    try {
+      const result = safeEvalExpression(currentNumber);
+      if (!Number.isFinite(result)) throw new Error('nan');
+      display.textContent = expression + ' = ' + result;
+      currentNumber = String(result);
+    } catch (e) {
+      display.textContent = expression + ' = Error';
+      currentNumber = '';
+    }
+  }
+
+  function calculateSqrt() {
+    if (!currentNumber.trim()) return;
+    const expr = currentNumber;
+    try {
+      const value = safeEvalExpression(currentNumber);
+      if (value < 0) {
+        display.textContent = '√(' + expr + ') = Error';
+        currentNumber = '';
+        return;
+      }
+      const result = Math.sqrt(value);
+      display.textContent = '√(' + expr + ') = ' + result;
+      currentNumber = String(result);
+    } catch (e) {
+      display.textContent = '√(' + expr + ') = Error';
+      currentNumber = '';
+    }
+  }
+
+  function factorial(n) {
+    if (n < 0 || n > 170) throw new Error('range');
+    let r = 1;
+    for (let i = 2; i <= n; i++) r *= i;
+    return r;
+  }
+
+  function calculateFactorial() {
+    if (!currentNumber.trim()) return;
+    const expr = currentNumber;
+    try {
+      const value = safeEvalExpression(currentNumber);
+      if (value < 0 || !Number.isInteger(value)) {
+        display.textContent = expr + '! = Error';
+        currentNumber = '';
+        return;
+      }
+      const result = factorial(value);
+      display.textContent = expr + '! = ' + result;
+      currentNumber = String(result);
+    } catch (e) {
+      display.textContent = expr + '! = Error';
+      currentNumber = '';
+    }
+  }
+
+  function backspace() {
+    if (!currentNumber) return;
+    currentNumber = currentNumber.slice(0, -1);
+    updateDisplay(currentNumber || '0');
+  }
+
+  const grid = document.getElementById('calcGrid');
+  const layout = [
+    { t: '1', cls: '', action: () => appendToCurrent('1'), pos: 'pos-r0c0' },
+    { t: '2', cls: '', action: () => appendToCurrent('2'), pos: 'pos-r0c1' },
+    { t: '3', cls: '', action: () => appendToCurrent('3'), pos: 'pos-r0c2' },
+    { t: '+', cls: 'op', action: () => appendToCurrent('+'), pos: 'pos-r0c3' },
+    { t: '**', cls: 'op', action: () => appendToCurrent('**'), pos: 'pos-r0c4' },
+    { t: '4', cls: '', action: () => appendToCurrent('4'), pos: 'pos-r1c0' },
+    { t: '5', cls: '', action: () => appendToCurrent('5'), pos: 'pos-r1c1' },
+    { t: '6', cls: '', action: () => appendToCurrent('6'), pos: 'pos-r1c2' },
+    { t: '-', cls: 'op', action: () => appendToCurrent('-'), pos: 'pos-r1c3' },
+    { t: '=', cls: 'eq', action: calculateResult, pos: 'pos-r1c4' },
+    { t: '7', cls: '', action: () => appendToCurrent('7'), pos: 'pos-r2c0' },
+    { t: '8', cls: '', action: () => appendToCurrent('8'), pos: 'pos-r2c1' },
+    { t: '9', cls: '', action: () => appendToCurrent('9'), pos: 'pos-r2c2' },
+    { t: '*', cls: 'op', action: () => appendToCurrent('*'), pos: 'pos-r2c3' },
+    { t: 'C', cls: 'op', action: clearCurrent, pos: 'pos-r2c4' },
+    { t: '√', cls: 'op', action: calculateSqrt, pos: 'pos-r3c0' },
+    { t: '0', cls: '', action: () => appendToCurrent('0'), pos: 'pos-r3c1' },
+    { t: 'n!', cls: 'op', action: calculateFactorial, pos: 'pos-r3c2' },
+    { t: '/', cls: 'op', action: () => appendToCurrent('/'), pos: 'pos-r3c3' },
+    { t: 'Инструменты', cls: 'tools', action: () => openOverlay('overlayTools'), pos: 'pos-r3c4' },
+  ];
+
+  layout.forEach(function (item) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = item.t;
+    b.className = item.cls + ' ' + item.pos;
+    b.addEventListener('click', item.action);
+    grid.appendChild(b);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key >= '0' && e.key <= '9') { e.preventDefault(); appendToCurrent(e.key); return; }
+    if (e.key === '+') { e.preventDefault(); appendToCurrent('+'); return; }
+    if (e.key === '-') { e.preventDefault(); appendToCurrent('-'); return; }
+    if (e.key === '*') { e.preventDefault(); appendToCurrent('*'); return; }
+    if (e.key === '/') { e.preventDefault(); appendToCurrent('/'); return; }
+    if (e.key === 'Enter' || e.key === '=') {
+      if (e.key === '=' && e.shiftKey) { e.preventDefault(); appendToCurrent('+'); return; }
+      e.preventDefault();
+      calculateResult();
+      return;
+    }
+    if (e.key === 'Escape' || e.key === 'Delete') { e.preventDefault(); clearCurrent(); return; }
+    if (e.key === 'Backspace') { e.preventDefault(); backspace(); return; }
+  });
+
+  function openOverlay(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeOverlay(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  document.querySelectorAll('[data-close]').forEach(function (el) {
+    el.addEventListener('click', function () { closeOverlay(el.getAttribute('data-close')); });
+  });
+  document.querySelectorAll('.overlay').forEach(function (ov) {
+    ov.addEventListener('click', function (e) { if (e.target === ov) ov.classList.remove('open'); });
+  });
+  document.querySelectorAll('[data-open]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      closeOverlay('overlayTools');
+      openOverlay(el.getAttribute('data-open'));
+    });
+  });
+
+  const tempUnits = ['Цельсий', 'Фаренгейт', 'Кельвин'];
+  const selTempFrom = document.getElementById('tempFrom');
+  const selTempTo = document.getElementById('tempTo');
+  tempUnits.forEach(function (u) {
+    selTempFrom.appendChild(new Option(u, u));
+    selTempTo.appendChild(new Option(u, u));
+  });
+
+  document.getElementById('btnTempConvert').addEventListener('click', function () {
+    const out = document.getElementById('tempResult');
+    try {
+      const temp = parseFloat(document.getElementById('tempInput').value);
+      if (Number.isNaN(temp)) { out.textContent = 'Ошибка ввода'; return; }
+      const fromUnit = selTempFrom.value;
+      const toUnit = selTempTo.value;
+      let result;
+      if (fromUnit === 'Цельсий') {
+        if (toUnit === 'Фаренгейт') result = temp * 9 / 5 + 32;
+        else if (toUnit === 'Кельвин') result = temp + 273.15;
+        else result = temp;
+      } else if (fromUnit === 'Фаренгейт') {
+        if (toUnit === 'Цельсий') result = (temp - 32) * 5 / 9;
+        else if (toUnit === 'Кельвин') result = (temp - 32) * 5 / 9 + 273.15;
+        else result = temp;
+      } else {
+        if (toUnit === 'Цельсий') result = temp - 273.15;
+        else if (toUnit === 'Фаренгейт') result = (temp - 273.15) * 9 / 5 + 32;
+        else result = temp;
+      }
+      out.textContent = 'Температура: ' + result.toFixed(2) + ' ' + toUnit;
+    } catch (e) {
+      out.textContent = 'Ошибка ввода';
+    }
+  });
+
+  const speedUnits = [
+    'м/с', 'км/ч', 'миль/ч', 'узлы', 'фут/с', 'ярд/с',
+    'м/мин', 'км/мин', 'миль/мин', 'фут/мин',
+    'Мах', 'скорость света (c)'
+  ];
+  const selSpeedFrom = document.getElementById('speedFrom');
+  const selSpeedTo = document.getElementById('speedTo');
+  speedUnits.forEach(function (u) {
+    selSpeedFrom.appendChild(new Option(u, u));
+    selSpeedTo.appendChild(new Option(u, u));
+  });
+
+  function convertToMps(speed, unit) {
+    const c = {
+      'м/с': speed,
+      'км/ч': speed / 3.6,
+      'миль/ч': speed / 2.23694,
+      'узлы': speed / 1.94384,
+      'фут/с': speed / 3.28084,
+      'ярд/с': speed / 1.09361,
+      'м/мин': speed / 60.0,
+      'км/мин': speed * 1000 / 60.0,
+      'миль/мин': speed * 1609.34 / 60.0,
+      'фут/мин': speed * 0.3048 / 60.0,
+      'Мах': speed * 343.0,
+      'скорость света (c)': speed * 299792458.0
+    };
+    return c[unit] !== undefined ? c[unit] : speed;
+  }
+  function convertFromMps(speedMps, unit) {
+    const c = {
+      'м/с': speedMps,
+      'км/ч': speedMps * 3.6,
+      'миль/ч': speedMps * 2.23694,
+      'узлы': speedMps * 1.94384,
+      'фут/с': speedMps * 3.28084,
+      'ярд/с': speedMps * 1.09361,
+      'м/мин': speedMps * 60.0,
+      'км/мин': speedMps * 60.0 / 1000.0,
+      'миль/мин': speedMps * 60.0 / 1609.34,
+      'фут/мин': speedMps * 60.0 / 0.3048,
+      'Мах': speedMps / 343.0,
+      'скорость света (c)': speedMps / 299792458.0
+    };
+    return c[unit] !== undefined ? c[unit] : speedMps;
+  }
+
+  document.getElementById('btnSpeedConvert').addEventListener('click', function () {
+    const out = document.getElementById('speedResult');
+    try {
+      const speed = parseFloat(document.getElementById('speedInput').value);
+      if (Number.isNaN(speed)) { out.textContent = 'Ошибка: введите корректное число'; return; }
+      const fromU = selSpeedFrom.value;
+      const toU = selSpeedTo.value;
+      const mps = convertToMps(speed, fromU);
+      const result = convertFromMps(mps, toU);
+      let resultStr;
+      if (Math.abs(result) >= 1e6) resultStr = result.toExponential(6);
+      else if (Math.abs(result) >= 1) resultStr = result.toFixed(6);
+      else resultStr = result.toFixed(10);
+      out.textContent = 'Скорость: ' + resultStr + ' ' + toU;
+    } catch (e) {
+      out.textContent = 'Ошибка: ' + e.message;
+    }
+  });
+
+  function numberToBase(num, base) {
+    if (num === 0) return '0';
+    const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    let negative = false;
+    let n = num;
+    if (n < 0) { negative = true; n = -n; }
+    while (n > 0) {
+      result = digits[n % base] + result;
+      n = Math.floor(n / base);
+    }
+    return (negative ? '-' : '') + result;
+  }
+
+  document.getElementById('btnNotation').addEventListener('click', function () {
+    const out = document.getElementById('notationResult');
+    const inputValue = document.getElementById('notNumber').value.trim().toUpperCase();
+    const fromBaseStr = document.getElementById('notFromBase').value.trim();
+    const toBaseStr = document.getElementById('notToBase').value.trim();
+    if (!inputValue) { out.textContent = 'Ошибка: введите число'; return; }
+    if (!fromBaseStr) { out.textContent = 'Ошибка: введите исходное основание'; return; }
+    if (!toBaseStr) { out.textContent = 'Ошибка: введите целевое основание'; return; }
+    let fromBase, toBase;
+    try {
+      fromBase = parseInt(fromBaseStr, 10);
+      toBase = parseInt(toBaseStr, 10);
+    } catch (e) {
+      out.textContent = 'Ошибка: основание должно быть числом';
+      return;
+    }
+    if (Number.isNaN(fromBase) || Number.isNaN(toBase)) {
+      out.textContent = 'Ошибка: основание должно быть числом';
+      return;
+    }
+    if (fromBase < 2 || fromBase > 36) { out.textContent = 'Ошибка: исходное основание должно быть от 2 до 36'; return; }
+    if (toBase < 2 || toBase > 36) { out.textContent = 'Ошибка: целевое основание должно быть от 2 до 36'; return; }
+    let value;
+    try {
+      value = parseInt(inputValue, fromBase);
+    } catch (e) {
+      out.textContent = "Ошибка: число не может быть представлено в системе с основанием " + fromBase;
+      return;
+    }
+    if (Number.isNaN(value)) {
+      out.textContent = "Ошибка: число '" + inputValue + "' не может быть представлено в системе с основанием " + fromBase;
+      return;
+    }
+    const result = toBase === 10 ? String(value) : numberToBase(value, toBase);
+    out.textContent = 'Число ' + inputValue + ' (основание ' + fromBase + ') = ' + result + ' (основание ' + toBase + ')';
+  });
+
+  function prepareGraphFunction(funcStr) {
+    let s = funcStr.trim();
+    s = s.replace(/log(\d+(?:\.\d+)?)\s*\(([^)]+)\)/g, function (_, base, arg) {
+      return '(Math.log(' + arg + ') / Math.log(' + base + '))';
+    });
+    s = s.replace(/\|([^|]+)\|/g, function (_, expr) {
+      return 'Math.abs(' + expr + ')';
+    });
+    s = s.replace(/\bsin\b/g, 'Math.sin');
+    s = s.replace(/\bcos\b/g, 'Math.cos');
+    s = s.replace(/\btan\b/g, 'Math.tan');
+    s = s.replace(/\bexp\b/g, 'Math.exp');
+    s = s.replace(/\blog\s*\(/g, 'Math.log(');
+    s = s.replace(/\bsqrt\b/g, 'Math.sqrt');
+    return s;
+  }
+
+  document.getElementById('btnPlot').addEventListener('click', function () {
+    const errEl = document.getElementById('graphError');
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    const funcStrRaw = document.getElementById('graphFunc').value.trim();
+    errEl.textContent = '';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!funcStrRaw) {
+      errEl.textContent = 'Введите функцию';
+      return;
+    }
+    let xMin, xMax;
+    try {
+      xMin = parseFloat(document.getElementById('graphXmin').value);
+      xMax = parseFloat(document.getElementById('graphXmax').value);
+    } catch (e) {
+      errEl.textContent = 'Ошибка диапазона';
+      return;
+    }
+    if (xMin >= xMax) {
+      errEl.textContent = 'x min должен быть меньше x max';
+      return;
+    }
+    const prepared = prepareGraphFunction(funcStrRaw);
+    const n = 1000;
+    const xs = [];
+    const ys = [];
+    let yMin = Infinity;
+    let yMax = -Infinity;
+    for (let i = 0; i < n; i++) {
+      const x = xMin + (xMax - xMin) * (i / (n - 1));
+      let y;
+      try {
+        y = Function('x', '"use strict"; return (' + prepared + ')')(x);
+      } catch (e) {
+        errEl.textContent = 'Ошибка: ' + e.message;
+        return;
+      }
+      if (typeof y !== 'number' || !Number.isFinite(y)) continue;
+      xs.push(x);
+      ys.push(y);
+      if (y < yMin) yMin = y;
+      if (y > yMax) yMax = y;
+    }
+    if (xs.length === 0) {
+      errEl.textContent = 'Нет точек для отображения';
+      return;
+    }
+    if (yMin === yMax) { yMin -= 1; yMax += 1; }
+    const pad = 40;
+    const W = canvas.width - 2 * pad;
+    const H = canvas.height - 2 * pad;
+    function sx(x) { return pad + (x - xMin) / (xMax - xMin) * W; }
+    function sy(y) { return pad + H - (y - yMin) / (yMax - yMin) * H; }
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx(xMin), sy(0));
+    ctx.lineTo(sx(xMax), sy(0));
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sx(0), sy(yMin));
+    ctx.lineTo(sx(0), sy(yMax));
+    ctx.stroke();
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx(xs[0]), sy(ys[0]));
+    for (let i = 1; i < xs.length; i++) {
+      if (!Number.isFinite(ys[i])) continue;
+      ctx.lineTo(sx(xs[i]), sy(ys[i]));
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#111';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('x', canvas.width - 20, canvas.height / 2);
+    ctx.save();
+    ctx.translate(20, canvas.height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('y', 0, 0);
+    ctx.restore();
+    ctx.fillStyle = '#333';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('График: ' + funcStrRaw, pad, 24);
+  });
+
+  const popularCurrencies = {
+    USD: 'Доллар США',
+    EUR: 'Евро',
+    GBP: 'Фунт стерлингов',
+    JPY: 'Японская йена',
+    CNY: 'Китайский юань',
+    CHF: 'Швейцарский франк',
+    AUD: 'Австралийский доллар',
+    CAD: 'Канадский доллар',
+    NZD: 'Новозеландский доллар',
+    SGD: 'Сингапурский доллар',
+    HKD: 'Гонконгский доллар',
+    SEK: 'Шведская крона',
+    NOK: 'Норвежская крона',
+    DKK: 'Датская крона',
+    PLN: 'Польский злотый',
+    TRY: 'Турецкая лира',
+    INR: 'Индийская рупия',
+    BRL: 'Бразильский реал',
+    ZAR: 'Южноафриканский рэнд',
+    MXN: 'Мексиканское песо',
+    KRW: 'Южнокорейская вона',
+    THB: 'Тайский бат',
+    ILS: 'Израильский шекель',
+    AED: 'Дирхам ОАЭ',
+    SAR: 'Саудовский риял'
+  };
+
+  async function loadCurrencyRates() {
+    const errEl = document.getElementById('currencyError');
+    const metaEl = document.getElementById('currencyMeta');
+    const tbody = document.querySelector('#currencyTable tbody');
+    const btn = document.getElementById('btnCurrencyRefresh');
+    errEl.textContent = '';
+    metaEl.textContent = 'Загрузка...';
+    btn.disabled = true;
+    tbody.innerHTML = '';
+    try {
+      const res = await fetch('/api/currency', { method: 'GET', cache: 'no-store' });
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error('Некорректный ответ сервера');
+      }
+      if (!res.ok) {
+        throw new Error(data.error || ('HTTP ' + res.status));
+      }
+      if (!data.rates) throw new Error('неверный формат данных');
+      const rates = data.rates;
+      const sorted = Object.keys(popularCurrencies)
+        .filter(function (code) { return rates[code] !== undefined; })
+        .sort();
+      sorted.forEach(function (code) {
+        const rate = rates[code];
+        const inverse = rate > 0 ? 1 / rate : 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + popularCurrencies[code] + '</td><td>' + code + '</td><td>' + inverse.toFixed(4) + '</td>';
+        tbody.appendChild(tr);
+      });
+      metaEl.textContent = 'Обновлено: ' + (data.date || 'N/A');
+    } catch (e) {
+      metaEl.textContent = '';
+      errEl.textContent = 'Ошибка: ' + e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('btnCurrencyRefresh').addEventListener('click', loadCurrencyRates);
+  const obsCurrency = new MutationObserver(function () {
+    if (document.getElementById('modalCurrency').classList.contains('open')) {
+      const tbody = document.querySelector('#currencyTable tbody');
+      if (tbody && tbody.rows.length === 0) loadCurrencyRates();
+    }
+  });
+  obsCurrency.observe(document.getElementById('modalCurrency'), { attributes: true, attributeFilter: ['class'] });
+
+  let gradesTotal = 0;
+  let gradesCount = 0;
+  const gradesModal = document.getElementById('modalGrades');
+  new MutationObserver(function () {
+    if (gradesModal.classList.contains('open')) {
+      gradesTotal = 0;
+      gradesCount = 0;
+      document.getElementById('gradesAvg').textContent = 'Средний балл: -';
+    }
+  }).observe(gradesModal, { attributes: true, attributeFilter: ['class'] });
+
+  document.querySelectorAll('[data-grade]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const g = parseInt(btn.getAttribute('data-grade'), 10);
+      gradesTotal += g;
+      gradesCount += 1;
+      const avg = gradesTotal / gradesCount;
+      document.getElementById('gradesAvg').textContent = 'Средний балл: ' + avg.toFixed(2);
+    });
+  });
+})();
+  </script>
+</body>
+</html>
